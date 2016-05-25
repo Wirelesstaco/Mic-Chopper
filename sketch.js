@@ -2,16 +2,19 @@
 // Barriers
 //Visual design
 
+
+
+//Mic
 var mic;
 var amp;
-
 var micThreashold =.018;
+var micSlider;
 
+//Chopper
 var chopper;
-
-
 var boost = .256;
 var gravity = 0.37;
+var isBoost = false;
 
 //TUnnel
 var yoff = 0.0;        //Speed the map moves defautl value
@@ -23,12 +26,18 @@ var playing = true;
 var freezeTimeStart = 50
 var freezeTime = freezeTimeStart;
 
+
 var score = 0 ;
 var highScore = 0;
 
 function setup(){
 	createCanvas(900,600);
 	background(0);
+	
+	
+	micSlider = createSlider(0, 50, micThreashold*100);
+  micSlider.position(20, 20);
+  micSlider.style('width','300');
   
 	mic = new p5.AudioIn();
 	mic.start();
@@ -41,13 +50,13 @@ function setup(){
 }
 
 function draw(){
- 
-  
+
   background(51);
+ 
   fill(225);
   noStroke();
   drawWalls()
-  chopper.display();
+  chopper.checkMic();
   if(playing){ 
     score ++;
     if(tHeight >150){
@@ -58,19 +67,25 @@ function draw(){
   chopper.checkEdges();
   chopper.checkHit();
   }
+  
+  
   //Pause game if not playing wait until freeTimeh as been met
-    
+
   if(!playing){
     scoreBoard();
     fill(3,3,222);
    
-      ellipse(200,300,freezeTime*2,freezeTime*2);
+    ellipse(200,300,freezeTime*2,freezeTime*2);
         
   if(freezeTime <0 ){
         freezeTime = freezeTimeStart;
         resetGame();
     }
   }
+  
+  //Draw interface
+  var iFace = new Interface();
+  iFace.micMeter();
   
 }
 
@@ -81,8 +96,11 @@ function Chopper(){
   
   
   // Draw Copter
-  this.display = function () {
+  this.checkMic = function () {
+   var sliderVal = micSlider.value();
+  micThreashold = micSlider.value()/100;
     if(amp.getLevel() > micThreashold){
+      isBoost = true;
       //Slow velocity to help boost.
       if(this.vel.y >2){
          this.vel.y = 2;
@@ -95,6 +113,7 @@ function Chopper(){
 	      freezeTime --;
 	    }
     }else{
+      isBoost = false;
       fill(255,0,0);
       this.acc = createVector(0,gravity);
     }
@@ -177,8 +196,23 @@ function drawWalls(){
   endShape(CLOSE);
   
 }
+
+function Interface(){
+  var quadWidth = 320;
+ 
+  this.micMeter = function (){
+    if(isBoost){
+      fill(0,200,0);
+      
+    }else{
+      fill(200,0,0)
+    }
+    var qW = (quadWidth * amp.getLevel()  + 20)*1.3;
+    quad(20,10,qW,10,qW,20,20,20);
+  }
+}
 function resetGame() {
-    score =0;
+    score = 0;
     chopper.vel.y = 0;
     chopper.pos.y = height/2;
     tHeight = tHeightStart;

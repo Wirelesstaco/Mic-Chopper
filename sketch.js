@@ -3,7 +3,6 @@
 //Visual design
 
 
-
 //Mic
 var mic;
 var amp;
@@ -16,11 +15,13 @@ var boost = .256;
 var gravity = 0.37;
 var isBoost = false;
 
-//TUnnel
+//Tunnel
 var yoff = 0.0;        //Speed the map moves defautl value
 var yoffSpeed = 0.015; //speed increase
+var barrierSpeed = 525.3 * yoffSpeed;
 var tHeightStart = 500;
 var tHeight = tHeightStart;
+
 
 var playing = true;
 var freezeTimeStart = 50
@@ -29,6 +30,9 @@ var freezeTime = freezeTimeStart;
 
 var score = 0 ;
 var highScore = 0;
+
+var barrier;
+var stageColor = 255;
 
 function setup(){
 	createCanvas(900,600);
@@ -47,6 +51,11 @@ function setup(){
 
 	chopper = new Chopper();
 	background(111);
+	
+	walls = new DrawWalls();
+	
+	// Barrier
+	barrier = new BarrierObj(-50, height/2);
 }
 
 function draw(){
@@ -55,7 +64,7 @@ function draw(){
  
   fill(225);
   noStroke();
-  drawWalls()
+  walls.disp();
   chopper.checkMic();
   if(playing){ 
     score ++;
@@ -66,7 +75,11 @@ function draw(){
  
   chopper.checkEdges();
   chopper.checkHit();
+  barrier.disp();
+  barrier.collide( chopper );
   }
+ 
+
   
   
   //Pause game if not playing wait until freeTimeh as been met
@@ -76,7 +89,7 @@ function draw(){
     fill(3,3,222);
    
     ellipse(200,300,freezeTime*2,freezeTime*2);
-        
+      
   if(freezeTime <0 ){
         freezeTime = freezeTimeStart;
         resetGame();
@@ -93,6 +106,7 @@ function Chopper(){
   //Chopper Setup
   this.pos = createVector(200,height /2);
   this.vel = createVector(0,0);
+  this.dia = 30;
   
   
   // Draw Copter
@@ -118,7 +132,7 @@ function Chopper(){
       this.acc = createVector(0,gravity);
     }
     
-	  ellipse(this.pos.x,this.pos.y,30,30);
+	  ellipse(this.pos.x,this.pos.y,this.dia,this.dia);
 
   }
   this.fly = function (){
@@ -150,17 +164,18 @@ function Chopper(){
   }
 }
 
-function drawWalls(){
-   fill(255);
+function DrawWalls(){
+  this.disp = function (){ fill(255);
    beginShape(); 
   var xoff = yoff; // 1D Noise - Resets offset
   var tWidth = 10;
   var topLine = []; // array for top boundry
   // Iterate over horizontal pixels
+  
   for (var x = 0; x <= width+tWidth; x += tWidth) {
     // Calculate a y value according to noise, map to 
   
-    // Option #2: 1D Noise
+    //  1D Noise
     var y = map(noise(xoff), 0, 1, tHeight,height);
     
     // Set the vertex
@@ -194,6 +209,10 @@ function drawWalls(){
   vertex(width, 0);//top right corner
   vertex(0, 0);//top left
   endShape(CLOSE);
+   this.endWallY = topLine[topLine.length -1][1];;
+  }
+ 
+
   
 }
 
@@ -216,7 +235,9 @@ function resetGame() {
     chopper.vel.y = 0;
     chopper.pos.y = height/2;
     tHeight = tHeightStart;
+    barrier.x = -50;
     playing= true;
+    
 }
 function scoreBoard(){
   if(score > highScore){
@@ -228,3 +249,35 @@ function scoreBoard(){
 }
 
 
+function BarrierObj(x,y){
+	this.x = x;
+	this.y = y;
+	this.w = 30;
+	this.h = 75;
+	this.color = color(stageColor);
+	this.hit = false;
+
+	this.collide = function(obj){
+
+		this.hit = collideRectCircle(this.x, this.y, this.w, this.h, chopper.pos.x, chopper.pos.y, chopper.dia); //collide the cir object into this rectangle object.
+
+		if(this.hit){
+		
+			playing = false;
+		}
+
+	}
+
+	this.disp = function(){
+		noStroke();
+		fill(this.color);
+		this.x -= barrierSpeed;
+		if(this.x < -500){ 
+			this.x = width +this.w/2;
+			this.y = walls.endWallY -tHeight/2 -this.h/2;
+		}
+		rect(this.x,this.y,this.w,this.h);
+
+	}
+
+}
